@@ -14,12 +14,16 @@
                     <input v-model="companyDetails.contact" placeholder="Company Contact"
                         class="w-full border p-2 mt-2">
                     <input v-model="companyDetails.email" placeholder="Company Email" class="w-full border p-2 mt-2">
+                    <!-- Company Logo Upload -->
+                    <input type="file" @change="handleLogoUpload" accept="image/*" class="w-full border p-2 mt-2">
+                    <p v-if="companyDetails.logo">Logo uploaded: {{ companyDetails.logo.name }}</p>
                 </div>
 
                 <!-- Quote Details -->
                 <div>
                     <h2 class="text-xl font-semibold mb-2">Quote Details</h2>
-                    <input v-model="quoteData.ref" disabled placeholder="Reference Number" class="w-full border p-2">
+                    <input v-model="quoteData.title" placeholder="Quote Title" class="w-full border p-2">
+                    <input v-model="quoteData.ref" placeholder="Reference Number" class="w-full border p-2">
                     <input v-model="quoteData.date" disabled type="date" class="w-full border p-2 mt-2">
                     <input v-model="quoteData.client" placeholder="Client Name" class="w-full border p-2 mt-2">
                 </div>
@@ -54,29 +58,31 @@
 
         <!-- Generated Quote -->
         <div v-if="showQuote" class="mt-8 border p-4">
-            <div class="mb-4">
-                <p><strong>Ref:</strong> {{ quoteData.ref }}</p>
-                <p><strong>Date:</strong> {{ formatDate(quoteData.date) }}</p>
-                <p><strong>Company:</strong> {{ companyDetails.name }}</p>
-                <p><strong>Address:</strong> {{ companyDetails.address }}</p>
-                <p><strong>Contact:</strong> {{ companyDetails.contact }}</p>
-                <p><strong>Email:</strong> {{ companyDetails.email }}</p>
+            <!-- Header Layout for Company and Client -->
+            <div class="flex justify-between">
+                <div>
+                    <img :src="companyLogoUrl" alt="Company Logo" class="h-24">
+                    <h2 class="text-lg font-bold mt-2">{{ companyDetails.name }}</h2>
+                    <p>{{ companyDetails.address }}</p>
+                    <p>{{ companyDetails.contact }}</p>
+                    <p>{{ companyDetails.email }}</p>
+                </div>
+                <div class="text-right">
+                    <p><strong>Ref:</strong> {{ quoteData.ref }}</p>
+                    <p><strong>Date:</strong> {{ formatDate(quoteData.date) }}</p>
+                    <p><strong>Client:</strong> {{ quoteData.client }}</p>
+                </div>
             </div>
 
-            <!-- Client and Quote Information -->
-            <table class="w-full border mb-4">
-                <tr>
-                    <th class="border p-2 text-left">Client</th>
-                    <td class="border p-2">{{ quoteData.client }}</td>
-                </tr>
-            </table>
+            <h2 class="text-center font-bold text-2xl mt-4 underline">{{ quoteData.title }}</h2>
 
-            <table class="w-full border mb-4">
+            <!-- Quote Information -->
+            <table class="w-full border mb-4 mt-4">
                 <tr>
-                    <th class="border p-2">Payment terms (goods)</th>
-                    <th class="border p-2">Supply</th>
-                    <th class="border p-2">Contact person</th>
-                    <th class="border p-2">Warranty (products)</th>
+                    <th class="border p-2 text-left">Payment Terms (Goods)</th>
+                    <th class="border p-2 text-left">Supply</th>
+                    <th class="border p-2 text-left">Contact Person</th>
+                    <th class="border p-2 text-left">Warranty (Products)</th>
                 </tr>
                 <tr>
                     <td class="border p-2">{{ quoteData.paymentTerms }}</td>
@@ -92,7 +98,7 @@
                     <th class="border p-2">No.</th>
                     <th class="border p-2">Particulars</th>
                     <th class="border p-2">Units</th>
-                    <th class="border p-2">Unit price (Ksh)</th>
+                    <th class="border p-2">Unit Price (Ksh)</th>
                     <th class="border p-2">Total (Ksh)</th>
                 </tr>
                 <tr v-for="(product, index) in quoteData.products" :key="index">
@@ -123,13 +129,6 @@
                     otherwise, out-of-stock items will take 4 weeks.</p>
             </div>
 
-            <div class="mt-4">
-                <h3 class="font-bold">Cost variations:</h3>
-                <p>Quotations and contracts are based on prevailing costs of production and are subject to amendment at
-                    any time after acceptance to meet any rise in such costs.</p>
-                <p>Quotation valid for 30 days.</p>
-            </div>
-
             <!-- Customer Acceptance -->
             <div class="mt-4">
                 <h3 class="font-bold">Customer acceptance</h3>
@@ -156,11 +155,10 @@
 <script setup>
 import { ref, reactive, computed } from 'vue';
 
-// Auto-generate the current date and a reference number
-const currentDate = new Date().toISOString().split('T')[0]; // format as YYYY-MM-DD
+const currentDate = new Date().toISOString().split('T')[0];
 const generateRef = () => {
     const year = new Date().getFullYear();
-    const randomNumber = Math.floor(100000 + Math.random() * 900000); // generates a random six-digit number
+    const randomNumber = Math.floor(100000 + Math.random() * 900000);
     return `IFS/${year}/${randomNumber}`;
 };
 
@@ -168,38 +166,32 @@ const companyDetails = reactive({
     name: '',
     address: '',
     contact: '',
-    email: ''
+    email: '',
+    logo: null
 });
 
 const quoteData = reactive({
     ref: generateRef(),
     date: currentDate,
     client: '',
-    paymentTerms: '100% advance',
-    supply: '1-3 days',
-    contactPerson: 'Susan - 0794 764 203',
-    warranty: '1 year warranty',
-    products: [
-        { particulars: 'Supply of Tenda F3 N300 300Mbps Wireless Router', units: 1, unitPrice: 1350 }
-    ]
+    paymentTerms: '',
+    supply: '',
+    contactPerson: '',
+    warranty: '',
+    products: [],
+    title: '',
 });
 
-const showQuote = ref(false);
-
 const addProduct = () => {
-    quoteData.products.push({ particulars: '', units: 0, unitPrice: 0 });
+    quoteData.products.push({
+        particulars: '',
+        units: 0,
+        unitPrice: 0
+    });
 };
 
 const removeProduct = (index) => {
     quoteData.products.splice(index, 1);
-};
-
-const generateQuote = () => {
-    showQuote.value = true;
-};
-
-const printQuote = () => {
-    window.print();
 };
 
 const calculateTotal = (product) => {
@@ -218,22 +210,43 @@ const grandTotal = computed(() => {
     return subTotal.value + vat.value;
 });
 
-const formatCurrency = (value) => {
-    return new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 2 }).format(value);
+const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-KE', {
+        style: 'currency',
+        currency: 'KES'
+    }).format(amount);
+};
+
+const showQuote = ref(false);
+
+const generateQuote = () => {
+    showQuote.value = true;
+};
+
+const printQuote = () => {
+    window.print();
+};
+
+const companyLogoUrl = ref(null);
+
+const handleLogoUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        companyDetails.logo = file;
+        companyLogoUrl.value = URL.createObjectURL(file);
+    }
 };
 
 const formatDate = (dateString) => {
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString('en-US', options);
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    const dateObj = new Date(dateString);
+    return dateObj.toLocaleDateString(undefined, options);
 };
 </script>
 
-<style>
-@media print {
-    button {
-        display: none;
-    }
-
-    /* Add any other print-specific styles here */
+<style scoped>
+/* Additional styling for better UI */
+.container {
+    max-width: 800px;
 }
 </style>
